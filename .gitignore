@@ -1,0 +1,16 @@
+# Dedicated to the public domain under CC0: https://creativecommons.org/publicdomain/zero/1.0/.
+
+# Finder.
+.DS_Store
+
+# Python.
+__pycache__/
+*.egg-info/
+
+# Muck.
+_build/
+_fetch/
+
+# Project.
+_misc/
+todo.txt
