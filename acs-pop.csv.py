@@ -15,8 +15,8 @@ def main():
   headers = load('acs-seq-headers.json')
   state_abbrs = load('state-abbrs.json')
   input_header = headers[seq_id]
-  col_idx_names = [(i, n) for (i, n) in enumerate(input_header) if n in desired_col_names]
-  out_header = [n for n in col_idx_names]
+  col_idx_names = [(i, n) for i, n in enumerate(input_header) if n in desired_col_names]
+  out_header = [n for i, n in col_idx_names]
 
   for i, n in col_idx_names:
     if n == 'STUSAB': stusab_idx = i
@@ -37,6 +37,7 @@ def main():
       lrn = row[lrn_idx]
       assert lrn not in lrns
       lrns.add(lrn)
+      row[stusab_idx] = row[stusab_idx].upper()
       yield [row[i] for i, n in col_idx_names]
 
   def gen_rows():

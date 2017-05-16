@@ -1,4 +1,3 @@
-
 '''
 Parse 2015_5yr_Summary_FileTemplates/2015_SFGeoFileTemplate.xls to obtain exact column headers for the ACS geography files.
 

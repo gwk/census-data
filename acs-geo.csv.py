@@ -21,11 +21,11 @@ desired_gaz_fields = [
 ]
 
 
-geoid_prefix = '14000US'
-
+geoid_tract_prefix      = '14000US'
+geoid_blockgroup_prefix = '15000US'
 
 def main():
-  input_header = load('geo-header.json')
+  input_header = load('acs-geo-header.json')
   state_abbrs = load('state-abbrs.json')
   col_idx_names = [(i, n) for (i, (n, desc)) in enumerate(input_header) if n in desired_col_names]
   errSL('geo column indexes:', col_idx_names)
@@ -45,13 +45,19 @@ def main():
       errL(state)
       for row in load(f'2015_ACS_Geography_Files/g20155{state.lower()}.csv', encoding='cp1252'):
         if row[tract_idx] == '': continue # not a tract or blockgroup.
-        if row[blockgroup_idx] != '': continue # skip blockgroups for now, because there is no corresponding gaz data.
+        is_tract = (row[blockgroup_idx] == '')
+        geoid_prefix = (geoid_tract_prefix if is_tract else geoid_blockgroup_prefix)
         geoid = row[geoid_idx]
         assert geoid.startswith(geoid_prefix), geoid
         geoid = geoid[len(geoid_prefix):] # trim prefix to match standard geoids in gaz and other datasets.
         row[geoid_idx] = geoid
-        g = gaz[geoid]
-        r = [row[i] for (i, n) in col_idx_names] + [g[k] for k in desired_gaz_fields]
+        sr = [row[i] for (i, n) in col_idx_names]
+        if is_tract: # tract.
+          g = gaz[geoid]
+          gr = [g[k] for k in desired_gaz_fields]
+        else: # blockgroup; no corresponding gaz data.
+          gr = ['' for k in desired_gaz_fields]
+        r = sr + gr
         assert len(r) == len(out_header)
         yield r
 
