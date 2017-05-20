@@ -3,24 +3,13 @@ Parse 2015_5yr_Summary_FileTemplates/2015_SFGeoFileTemplate.xls to obtain exact 
 
 '''
 
-import xlrd
-import csv
-from itertools import starmap
-from typing import Any, BinaryIO
-from muck import add_loader, load
+from muck import *
 from pithy.io import *
 from pithy.json_utils import *
 
 
-def load_xls(file: BinaryIO) -> Any:
-  return xlrd.open_workbook(filename=file.name, logfile=stderr)
-
-add_loader('.xls', load_xls, binary=True)
-
-
 def main():
-  path = f'2015_5yr_Summary_FileTemplates/2015_SFGeoFileTemplate.xls'
-  book = load(path)
+  book = load('data/2015_5yr_Summary_FileTemplates.zip', single_name='2015_SFGeoFileTemplate.xls')
   sheets = book.sheets()
   assert len(sheets) == 1
   sheet = sheets[0]

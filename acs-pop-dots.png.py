@@ -27,7 +27,7 @@ def main():
   'since both datasets come sorted by LOGRECNO, we can simply parse them lazily and zip to join them.'
   dots = []
   for g, p in err_progress(zip(parse_geo(), parse_pop())):
-    assert g.STUSAB == p.STUSAB
+    assert g.STUSAB == p.STUSAB, (g, p)
     assert g.LOGRECNO == p.LOGRECNO
     if g.ALAND == '':
       assert g.BLKGRP != '', g # skip blockgroups, which do not yet have geo data.

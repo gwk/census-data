@@ -1,3 +1,4 @@
+import re
 from muck import *
 from pithy.io import *
 from pithy.csv_utils import *
@@ -26,7 +27,6 @@ geoid_blockgroup_prefix = '15000US'
 
 def main():
   input_header = load('acs-geo-header.json')
-  state_abbrs = load('state-abbrs.json')
   col_idx_names = [(i, n) for (i, (n, desc)) in enumerate(input_header) if n in desired_col_names]
   errSL('geo column indexes:', col_idx_names)
   out_header = [n for (i, n) in col_idx_names] + desired_gaz_fields
@@ -40,10 +40,10 @@ def main():
   gaz = parse_gaz()
 
   def gen_rows():
-    for state in state_abbrs:
-      if state in ('GU', 'VI'): continue # no geography file provided.
-      errL(state)
-      for row in load(f'2015_ACS_Geography_Files/g20155{state.lower()}.csv', encoding='cp1252'):
+    for f in load('data/2015_ACS_Geography_Files.zip'):
+      if not f.name.endswith('.csv'): continue # ignore the .txt files, which present the same info in a less helpful format.
+      errL(f)
+      for row in load(f, encoding='cp1252'):
         if row[tract_idx] == '': continue # not a tract or blockgroup.
         is_tract = (row[blockgroup_idx] == '')
         geoid_prefix = (geoid_tract_prefix if is_tract else geoid_blockgroup_prefix)
@@ -61,7 +61,7 @@ def main():
         assert len(r) == len(out_header)
         yield r
 
-  out_csv(header=out_header, rows=gen_rows())
+  out_csv(header=out_header, rows=sorted(gen_rows(), key=lambda r: r[:2]))
 
 
 def parse_gaz():
@@ -74,7 +74,7 @@ def parse_gaz():
   header = ['USPS', 'GEOID', 'ALAND', 'AWATER', 'ALAND_SQMI', 'AWATER_SQMI', 'INTPTLAT', 'INTPTLONG']
   gaz = {}
   first = True
-  for line in load('2015_Gaz_tracts_national.txt'):
+  for line in load('data/2015_Gaz_tracts_national.zip', single_name='2015_Gaz_tracts_national.txt'):
     row = line.split()
     if first: # gaz header.
       first = False

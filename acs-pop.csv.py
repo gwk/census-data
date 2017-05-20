@@ -45,7 +45,8 @@ def main():
       if state in ('GU', 'VI'): continue # no geography file provided.
       yield from gen_state_rows(state)
 
-  out_csv(header=out_header, rows=gen_rows())
+  out_csv(header=out_header, rows=sorted(gen_rows(), key=lambda r: r[:2]))
+
 
 
 #STUSAB,LOGRECNO,COUNTY,TRACT,BLKGRP,GEOID,NAME,ALAND,AWATER,INTPTLAT,INTPTLONG
