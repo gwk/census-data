@@ -1,0 +1,126 @@
+writeup v0
+
+# Census Data
+
+This project is an exploration of how to parse and visualize US Census American Community Survey (ACS) data, in particular the 2015 5-year dataset.
+
+The "Summary File" is the offical term for the detailed dataset:
+> The ACS Summary File is a set of comma-delimited text files that contain all of the Detailed Tables. By comma-delimited text files, I mean that the file contains estimates (or margins of error) separated by commas. I will show you what I mean on the next slide. By Detailed Tables, I mean the pre-tabulated tables that start with B(base) or C (collapsed). The ACS Summary File is stored in a series of files on the file transfer protocol (or FTP) site. The files contain only the estimates or margins of error from the tables. It does not include information suchastabletitle,descriptionoftherows,etcthatyouareusedtoseeinginAmericanFactFinder. The file becomes more useful as you add in the identifying information.
+^1
+
+I am particularly interested in the census block group data, which is the smallest geographical division available:
+> It is important to note the difference between Legal and Administrative areas and Statistical areas. First, Legal/administrative areas have legally described boundaries; they may provide governmental services or may be used to administer programs. (Examples are Counties, Incorporated Places, Congressional Districts, and School Districts)
+> Statistical geographic areas are defined primarily for data tabulation and presentation purposes. (Examples are Public Use Microdata Areas, Census Tracts, and Block Groups).
+> Census tracts are small, relatively permanent of a county or county equivalent. Census tracts generally have a minimum population of 1,200, or 480 housing units, and a maximum population of 8,000 people or 3,200 housing units. Tracts have an optimum size of 4,000 people or 1,600 housing units.
+> Block groups are statistical divisions of census tracts and are defined to contain a minimum of 600 persons or 240 housing units and a maximum of 3,000 people or 1,200 housing units. In the American Community Survey, block groups are the lowest level of geography published.
+^1
+
+The ACS comes in 1 and 5 year datasets; the 5 year is an aggregate of five years of collected data, e.g. 2010-2015, and gives better "sample size/reliability/precision" for small populations at the expense of currency. The 3-year product was discontinued.
+^2
+
+# Sources
+
+The primary data sources are found in this folder: https://www2.census.gov/programs-surveys/acs/summary_file/2015/data/5_year_entire_sf/
+
+Additionally, we use the National Census Tracts Gazetteer to get geocoordinates for each tract. Alternatively, we could use the TIGER/Line geodata, but that would be much more complicated. The limitation of the Gazetteer data is that it does not cover the block groups, only tracts and larger areas. See <https://www.census.gov/geo/maps-data/data/gazetteer2015.html>.
+
+In order to build this project, the following need to be downloaded into a subdirectory named `data`:
+* <https://www2.census.gov/programs-surveys/acs/summary_file/2015/data/2015_5yr_Summary_FileTemplates.zip> (1.3MB)
+* <https://www2.census.gov/programs-surveys/acs/summary_file/2015/data/5_year_entire_sf/2015_ACS_Geography_Files.zip> (21MB)
+* <https://www2.census.gov/programs-surveys/acs/summary_file/2015/data/5_year_entire_sf/Tracts_Block_Groups_Only.tar.gz> (3.5GB)
+* <http://www2.census.gov/geo/docs/maps-data/data/gazetteer/2015_Gazetteer/2015_Gaz_tracts_national.zip> (1.8MB)
+
+Additionally, following documentation is helpful:
+* <https://www.census.gov/programs-surveys/acs/technical-documentation/summary-file-documentation.html>
+* <https://www2.census.gov/programs-surveys/acs/summary_file/2015/documentation/tech_docs/ACS_2015_SF_5YR_Appendices.xls>
+* <https://www2.census.gov/programs-surveys/acs/summary_file/2015/documentation/tech_docs/2015_SummaryFile_Tech_Doc.pdf>
+
+
+# Details
+
+## ACS Documentation
+
+The data files are named as follows: "20155ak0001000.csv"
+* "2015": Reference Year: ACS data year (last year of the period for multiyear periods).
+* "5": Period (1 or 5): Period Covered.
+* "ak": State Level: US or abbreviations for state, District of Columbia, and Puerto Rico
+* "0001": Sequence Number: 0001 to 9999.
+* "000": IterationID: Iteration ID for Selected Population Tables and American Indian & Alaska Native Tables. Note: Iteration ID is always “000” for the standard 1-Year and 5-Year products.
+
+from ACS_2015_SF_5YR_Appendices.xls:
+| table: B01003; title: Total Population; sequence: 0003; start pos: 130; end pos: 130-130.
+
+This is the last table in seqence 3, so sequence 3 has 130 columns, the last of which is the total population.
+
+## Gazetteer
+
+The Gazetteer data has the following columns:
+| USPS	United States Postal Service State Abbreviation
+| GEOID	Geographic Identifier - fully concatenated geographic code (State FIPS, County FIPS, census tract number)
+| ALAND	Land Area (square meters) - Created for statistical purposes only
+| AWATER	Water Area (square meters) - Created for statistical purposes only
+| ALAND_SQMI	Land Area (square miles) - Created for statistical purposes only
+| AWATER_SQMI	Water Area (square miles) - Created for statistical purposes only
+| INTPTLAT	Latitude (decimal degrees) First character is blank or "-" denoting North or South latitude respectively
+| INTPTLONG	Longitude (decimal degrees) First character is blank or "-" denoting East or West longitude respectively
+
+
+# TODO
+
+## For the healthcare portion of the project:
+
+Pharmacies and Hospitals:
+Pharmacies: https://hifld-dhs-gii.opendata.arcgis.com/datasets/19145a0e403a4af4b2e4b76a6f2ec0ee_0
+Hospitals:  https://hifld-dhs-gii.opendata.arcgis.com/datasets/e13641c764344b8ab7dfd41831e56940_0
+
+
+## Geographic distance calculations
+
+http://www.movable-type.co.uk/scripts/latlong.html
+The haversine formula calculates the great-circle distance between two points – that is, the shortest distance over the Earth’s surface.
+
+from math import radians, sin, cos, sqrt, asin
+
+| def haversine(lat1, lon1, lat2, lon2):
+|   R = 6372.8 # Earth radius in kilometers.
+|   dLat = radians(lat2 - lat1)
+|   dLon = radians(lon2 - lon1)
+|   lat1 = radians(lat1)
+|   lat2 = radians(lat2)
+|   a = sin(dLat/2)**2 + cos(lat1) * cos(lat2) * sin(dLon/2)**2
+|   c = 2 * asin(sqrt(a))
+|   return R * c
+
+
+## Geodata
+
+census tract and block group data can be downloaded in "geodatabase format", but I don't know how to parse the files.
+https://www.census.gov/geo/maps-data/data/tiger-data.html
+
+
+## SQLite bulk import.
+
+http://www.sqlite.org/cli.html#csv_import
+
+
+## Miscellaneous
+
+https://censusreporter.org/ can help identify various column names.
+
+https://www.census.gov/programs-surveys/acs/guidance/training-presentations/acs-block-groups.html
+https://www.census.gov/programs-surveys/acs/technical-documentation/summary-file-documentation.html
+
+https://en.wikipedia.org/wiki/Census_block_group
+https://en.wikipedia.org/wiki/Equirectangular_projection
+
+Joining with Geodata:
+https://www2.census.gov/programs-surveys/acs/summary_file/2015/documentation/tech_docs/ACS_SF_TIGERLine_Shapefiles.pdf
+https://www2.census.gov/geo/pdfs/maps-data/data/tiger/tgrshp2015/TGRSHP2015_TechDoc.pdf
+
+Documentation downloads
+https://www2.census.gov/programs-surveys/acs/summary_file/2015/documentation/geography/5yr_year_geo/
+https://www2.census.gov/programs-surveys/acs/summary_file/2015/documentation/geography/5yr_year_geo/ak.xls
+
+
+^1: <https://www.census.gov/content/dam/Census/programs-surveys/acs/guidance/training-presentations/2016_BlockGroups_Transcript_01.pdf>
+^2: <https://www.census.gov/programs-surveys/acs/guidance/estimates.html>
