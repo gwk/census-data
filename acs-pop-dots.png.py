@@ -3,6 +3,7 @@ from math import log2, sqrt
 from typing import NamedTuple
 from pithy.io import *
 from pithy.immutable import Immutable
+from pithy.iterable import min_max, count_by_pred
 
 from PIL import Image, ImageDraw
 
@@ -21,6 +22,11 @@ class Dot(NamedTuple):
   area: float
   lat: float
   lon: float
+
+  @property
+  def pop_density(self) -> float:
+    if self.pop == 0: return 0
+    return self.pop / self.area
 
 
 def main():
@@ -66,10 +72,20 @@ def mk_dot(g, p):
 
 def render(dots):
   errSL('dots:', len(dots))
-  pop_max = max(d.pop for d in dots)
-  area_max = max(d.area for d in dots)
-  density_max = pop_max / area_max
-  errL(f'max pop: {pop_max}; max area: {area_max}; max density: {density_max}')
+  pop_min, pop_max = min_max(d.pop for d in dots)
+  area_min, area_max = min_max(d.area for d in dots)
+  dens_min, dens_max = min_max(filter(None, (d.pop_density for d in dots)))
+  errL(f'pop: {pop_min} ... {pop_max}')
+  errL(f'area: {area_min} ... {area_max}')
+  errL(f'density (excluding zeros): {dens_min} ... {dens_max}; min sq m per person: {1/dens_max}')
+
+  zero_pops   = count_by_pred(dots, lambda d: d.pop == 0)
+  zero_areas  = count_by_pred(dots, lambda d: d.area == 0)
+  errL(f'zero pop: {zero_pops}; zero area: {zero_areas}')
+
+  dens_lin_scale = 2 / dens_min # want minimum observed density to have a log2 value of 1.
+  dens_log_scale = 1 / log2(dens_max * dens_lin_scale) # want max observed density to be 1 on the log2 scale.
+
   x_min = min(d.lon for d in dots)
   x_max = max(d.lon for d in dots)
   y_min = min(d.lat for d in dots)
@@ -77,8 +93,8 @@ def render(dots):
   w = x_max - x_min
   h = y_max - y_min
   ar = w / h
-  errL(f'x: {x_min} ... {x_max} = {w}')
-  errL(f'y: {y_min} ... {y_max} = {h}')
+  errL(f'w = {w}; {x_min} ... {x_max}')
+  errL(f'h = {h}; {y_min} ... {y_max}')
   errL(f'ar: {ar}')
 
   w_px = 1024 * 4
@@ -101,14 +117,17 @@ def render(dots):
     return (x - r, y - r, x + r, y + r)
 
   def color(dot):
-    v = ((dot.pop / dot.area) / density_max)
-    i = int(round(255 * v))
+    d = dot.pop_density
+    if d == 0:
+      i = 0
+    else:
+      v = log2(d * dens_lin_scale) * dens_log_scale
+      i = int(round(255 * v))
     return (0, i, 0)
 
   img = Image.new(mode='RGB', size=(w_px, h_px))
   draw = ImageDraw.Draw(img)
   for dot in err_progress(dots):
-    if dot.pop == 0: continue
     draw.ellipse(box(dot), fill=color(dot), outline=None)
   img.save(stdout.buffer, 'PNG', dpi=(220, 220))
 
