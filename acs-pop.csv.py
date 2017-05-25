@@ -6,16 +6,16 @@ from pithy.csv_utils import *
 seq_id = 3 # contains population count.
 
 desired_col_names = {
-  'STUSAB',
-  'LOGRECNO',
-  'B01003_001: TOTAL POPULATION for Total Population%Total',
+  'STUSAB' : 'STUSAB',
+  'LOGRECNO' : 'LOGRECNO',
+  'B01003_001: TOTAL POPULATION for Total Population%Total' : 'POPULATION',
 }
 
 def main():
   headers = load('acs-seq-headers.json')
   input_header = headers[seq_id]
   col_idx_names = [(i, n) for i, n in enumerate(input_header) if n in desired_col_names]
-  out_header = [n for i, n in col_idx_names]
+  out_header = [desired_col_names[n] for i, n in col_idx_names]
 
   for i, n in col_idx_names:
     if n == 'STUSAB': stusab_idx = i

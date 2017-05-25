@@ -4,9 +4,9 @@ from typing import NamedTuple
 from pithy.io import *
 from pithy.immutable import Immutable
 from pithy.iterable import min_max, count_by_pred
+from muck.pithy.svg import SvgWriter
 
-from PIL import Image, ImageDraw
-
+from headers import geo_pop_header
 
 excluded_states = {
   'AK',
@@ -32,41 +32,26 @@ class Dot(NamedTuple):
 def main():
   'since both datasets come sorted by LOGRECNO, we can simply parse them lazily and zip to join them.'
   dots = []
-  for g, p in err_progress(zip(parse_geo(), parse_pop())):
-    assert g.STUSAB == p.STUSAB, (g, p)
-    assert g.LOGRECNO == p.LOGRECNO
-    if g.ALAND == '':
-      assert g.BLKGRP != '', g # skip blockgroups, which do not yet have geo data.
+  for row in err_progress(load('acs-geo-pop-tracts.csv', header=geo_pop_header)):
+    spot = Immutable(*zip(geo_pop_header, row))
+    assert spot.BLKGRP == '', spot # acs-pop-tracts skips blockgroups because we do not yet have geo data.
+    if spot.ALAND == '':
       continue
-    if g.STUSAB in excluded_states: continue
-    dots.append(mk_dot(g, p))
+    if spot.STUSAB in excluded_states: continue
+    if spot.STUSAB != 'CA': continue
+    dots.append(mk_dot(spot))
   render(dots)
 
 
-def parse_geo():
-  geo_header = ['STUSAB', 'LOGRECNO', 'COUNTY', 'TRACT', 'BLKGRP', 'GEOID', 'NAME', 'ALAND', 'AWATER', 'INTPTLAT', 'INTPTLONG']
-  for row in load('acs-geo.csv', header=geo_header):
-    yield Immutable(*zip(geo_header, row))
-
-
-def parse_pop():
-  pop_header = ['STUSAB', 'LOGRECNO', 'B01003_001: TOTAL POPULATION for Total Population%Total']
-  fields = pop_header[:2] + ['POPULATION']
-  for row in load('acs-pop.csv', header=pop_header):
-    yield Immutable(*zip(fields, row))
-
-
-def mk_dot(g, p):
+def mk_dot(spot):
   try:
     return Dot(
-      pop=float(p.POPULATION),
-      area=float(g.ALAND),
-      lat=float(g.INTPTLAT),
-      lon=float(g.INTPTLONG))
+      pop=float(spot.POPULATION),
+      area=float(spot.ALAND),
+      lat=float(spot.INTPTLAT),
+      lon=float(spot.INTPTLONG))
   except Exception as e:
-    errSL('g:', g)
-    errSL('p:', p)
-    errSL('e:', type(e), e)
+    errSL('spot:', spot)
     raise
 
 
@@ -90,46 +75,48 @@ def render(dots):
   x_max = max(d.lon for d in dots)
   y_min = min(d.lat for d in dots)
   y_max = max(d.lat for d in dots)
-  w = x_max - x_min
-  h = y_max - y_min
+
+  size_x = x_max - x_min
+  size_y = y_max - y_min
+
+  margin = 1/16
+  mx = margin * size_x
+  my = margin * size_y
+  ox = x_min - mx
+  oy = y_min - my
+  w = size_x + mx * 2
+  h = size_y + my * 2
   ar = w / h
   errL(f'w = {w}; {x_min} ... {x_max}')
   errL(f'h = {h}; {y_min} ... {y_max}')
   errL(f'ar: {ar}')
 
-  w_px = 1024 * 4
-  h_px = int(w_px / ar)
 
-  margin = 1/16
-  xm = w * margin
-  ym = h * margin
-  xo = x_min - xm
-  yo = y_min - ym
-  xs = w_px / (x_max + xm - xo)
-  ys = h_px / (y_max + ym - yo)
+  nh = h / w
+  errSL('nh:', nh)
+  l = 1024
+  max_rad = 16
 
-  def coord(dot):
-    return (dot.lon - xo) * xs, h_px - (dot.lat - yo) * ys
+  def pos(dot):
+    nx = (dot.lon - ox) / w
+    ny = (h - (dot.lat - oy)) / w  # flip y, then normalize by w.
+    return (l * nx, l * ny)
 
-  def box(dot):
-    x, y = coord(dot)
-    r = sqrt(dot.area / area_max) * 12
-    return (x - r, y - r, x + r, y + r)
+  def radius(dot):
+    return max_rad * sqrt(dot.area / area_max)
 
   def color(dot):
     d = dot.pop_density
     if d == 0:
-      i = 0
+      g = 0
     else:
       v = log2(d * dens_lin_scale) * dens_log_scale
-      i = int(round(255 * v))
-    return (0, i, 0)
+      g = int(round(255 * v))
+    return f'#00{g:2x}00'
 
-  img = Image.new(mode='RGB', size=(w_px, h_px))
-  draw = ImageDraw.Draw(img)
-  for dot in err_progress(dots):
-    draw.ellipse(box(dot), fill=color(dot), outline=None)
-  img.save(stdout.buffer, 'PNG', dpi=(220, 220))
-
+  with SvgWriter(w=l, h=l*nh) as f:
+    f.rect(x=0, y=0, w=l, h=l*nh, fill='black')
+    for dot in err_progress(dots):
+      f.circle(pos=pos(dot), r=radius(dot), fill=color(dot), stroke=None)
 
 main()
