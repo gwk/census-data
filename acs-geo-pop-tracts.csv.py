@@ -6,10 +6,6 @@ from pithy.csv_utils import out_csv
 from headers import *
 
 
-def main():
-  out_csv(header=geo_pop_header, rows=out_rows())
-
-
 def out_rows():
   'since both datasets come sorted by LOGRECNO, we can simply parse them lazily and zip to join them.'
   dots = []
@@ -24,4 +20,4 @@ def out_rows():
     yield gr + pr[2:]
 
 
-main()
+out_csv(header=geo_pop_header, rows=out_rows())
