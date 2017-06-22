@@ -47,7 +47,6 @@ function load() {
   }
 
   function render(dots) {
-    log("RENDER");
     for (let [nx, ny, nr, color] of dots) {
       ctx.fillStyle = color;
       let x = nx * w;
