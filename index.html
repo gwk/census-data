@@ -5,6 +5,8 @@
   body {
     color: white; background: #808080;
     margin: 0;
+    display: flex;
+    flex-direction: column;
   }
   pre {
     background: black;
@@ -15,14 +17,38 @@
   #canvas {
     background: #000000;
     width: 100%;
-    height: 100%;
+    flex-grow: 1;
   }
+
+  #controlStrip {
+    flex-basis: 2rem;
+    flex-direction: row;
+    display: flex;
+    padding: 0.5rem;
+    color: #808080;
+    background: #202020;
+  }
+
+  #controlStrip * {
+    margin: 1rem;
+  }
+
+  output {
+    font-family: sans-serif;
+    color: green;
+    background: red;
+  }
+
 </style>
 
 <script src='render.js'></script>
 </head>
 
 <body onload="load();">
-<canvas id="canvas"><canvas/>
+  <canvas id="canvas"></canvas>
+  <div id="controlStrip">
+    <input id="radiusSlider" type="range" min="1" max="64" value="1" />
+    <output id="radiusVal" />
+  </div>
 </body>
 </html>

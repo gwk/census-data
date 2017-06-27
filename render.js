@@ -28,6 +28,14 @@ function load() {
 
   window.onresize() // perform initial size.
 
+  function radiusAction() {
+    radiusVal.value = radiusSlider.value;
+    render();
+  }
+  radiusSlider.addEventListener("input", radiusAction, false);
+  radiusAction() // initial update.
+
+
   // fetch data.
   fetch("_build/acs-pop-dots.json")
     .then(response => response.json())
@@ -38,13 +46,15 @@ function load() {
     .catch(error => console.error(error));
 
   function render() {
+    ctx.clearRect(0, 0, 1, 1);
     if (data.dots == null) { return; }
+    let radiusScale = radiusSlider.value;
     let {width: w, height: h} = canvas.getBoundingClientRect();
     for (let [nx, ny, nr, color] of data.dots) {
       ctx.fillStyle = color;
       let x = nx;
       let y = ny;
-      let r = nr * 0.01;
+      let r = nr * 0.001 * radiusScale;
       //log(`${x} ${y} ${r} ${color}`);
       fill_circle(x, y, r, color);
     }
