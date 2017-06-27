@@ -1,3 +1,4 @@
+'use strict';
 
 const pi2 = Math.PI * 2;
 
@@ -6,21 +7,48 @@ const log = console.log;
 
 function load() {
   // main program setup.
-  log('loading...');
 
-  // set up the canvas context and initialize size variables.
-  let canvas = document.getElementById('canvas');
+  let data = {
+    dots: null,
+  };
+
   let ctx = canvas.getContext('2d');
-  let {width: w, height: h} = canvas.getBoundingClientRect();
-  let scaleFactor = screenScaleFactor();
 
-  log(`canvas: ${w} ${h} scale:${scaleFactor}`);
+  window.onresize = ()=>{
+    let {width: w, height: h} = canvas.getBoundingClientRect();
+    let scaleFactor = screenScaleFactor();
+    log(`resize: w:${w} h:${h} scale:${scaleFactor}`)
+    canvas.width = w * scaleFactor;
+    canvas.height = h * scaleFactor;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(scaleFactor, scaleFactor); // scale the rendering context for high-res displays.
+    ctx.scale(w, w); // scale to normalized coordinates by width, maintaining aspect ratio.
+    render()
+  }
 
-  canvas.width = w * scaleFactor;
-  canvas.height = h * scaleFactor;
-  ctx.scale(scaleFactor, scaleFactor); // scale the rendering context for high-res displays.
-  log(`canvas w:${canvas.width} h:${canvas.height}`);
+  window.onresize() // perform initial size.
 
+  // fetch data.
+  fetch("_build/acs-pop-dots.json")
+    .then(response => response.json())
+    .then(json => {
+      data.dots = json;
+      render();
+    })
+    .catch(error => console.error(error));
+
+  function render() {
+    if (data.dots == null) { return; }
+    let {width: w, height: h} = canvas.getBoundingClientRect();
+    for (let [nx, ny, nr, color] of data.dots) {
+      ctx.fillStyle = color;
+      let x = nx;
+      let y = ny;
+      let r = nr * 0.01;
+      //log(`${x} ${y} ${r} ${color}`);
+      fill_circle(x, y, r, color);
+    }
+  }
 
   function draw_line(x0, y0, x1, y1) {
     // convenience function to draw a single line.
@@ -45,31 +73,13 @@ function load() {
     ctx.closePath();
     ctx.fill();
   }
-
-  function render(dots) {
-    for (let [nx, ny, nr, color] of dots) {
-      ctx.fillStyle = color;
-      let x = nx * w;
-      let y = ny * w;
-      let r = nr * 12;
-      //log(`${x} ${y} ${r} ${color}`);
-      fill_circle(x, y, r, color);
-    }
-  }
-
-  fetch("_build/acs-pop-dots.json")
-    .then(response => response.json())
-    .then(json => render(json))
-    .catch(error => console.error(error));
 }
 
 
 function screenScaleFactor() {
   // detect if the screen is a retina display.
-  if ('devicePixelRatio' in window) {
-    if (window.devicePixelRatio > 1) {
-      return window.devicePixelRatio;
-    }
+  if ('devicePixelRatio' in window && window.devicePixelRatio > 1) {
+    return window.devicePixelRatio;
   }
   return 1;
 }
