@@ -1,7 +1,6 @@
 'use strict';
 
 const pi2 = Math.PI * 2;
-
 const log = console.log;
 
 
@@ -37,7 +36,7 @@ function load() {
 
 
   // fetch data.
-  fetch("_build/acs-pop-dots.json")
+  fetch("acs-pop-dots.json")
     .then(response => response.json())
     .then(json => {
       data.dots = json;
