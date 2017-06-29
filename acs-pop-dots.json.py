@@ -3,7 +3,7 @@ from math import log2, sqrt
 from typing import NamedTuple
 from pithy.io import *
 from pithy.immutable import Immutable
-from pithy.iterable import min_max, count_by_pred
+from pithy.iterable import extent, count_by_pred
 from pithy.json_utils import out_json
 
 from headers import geo_pop_header
@@ -32,9 +32,9 @@ def main():
 
   errSL('dots:', len(dots))
   dots.sort(key=lambda d: -d.area)
-  pop_min, pop_max = min_max(d.pop for d in dots)
-  area_min, area_max = min_max(d.area for d in dots)
-  dens_min, dens_max = min_max(filter(None, (d.pop_density for d in dots)))
+  pop_min, pop_max = extent(d.pop for d in dots)
+  area_min, area_max = extent(d.area for d in dots)
+  dens_min, dens_max = extent(filter(None, (d.pop_density for d in dots)))
   errL(f'pop: {pop_min} ... {pop_max}')
   errL(f'area: {area_min} ... {area_max}')
   errL(f'density (excluding zeros): {dens_min} ... {dens_max}; min sq m per person: {1/dens_max}')
