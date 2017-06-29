@@ -29,7 +29,7 @@ function load() {
   window.onresize() // perform initial size.
 
   function radiusAction() {
-    radiusVal.value = radiusSlider.value;
+    radiusOutput.value = radiusSlider.value;
     render();
   }
   radiusSlider.addEventListener("input", radiusAction, false);

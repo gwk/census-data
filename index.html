@@ -21,10 +21,9 @@
   }
 
   #controlStrip {
-    flex-basis: 2rem;
     flex-direction: row;
     display: flex;
-    padding: 0.5rem;
+    align-items: baseline;
     color: #808080;
     background: #202020;
   }
@@ -33,10 +32,9 @@
     margin: 1rem;
   }
 
-  output {
+  #controlStrip output {
     font-family: sans-serif;
-    color: green;
-    background: red;
+    color: lightgray;
   }
 
 </style>
@@ -48,7 +46,8 @@
   <canvas id="canvas"></canvas>
   <div id="controlStrip">
     <input id="radiusSlider" type="range" min="1" max="64" value="1" />
-    <output id="radiusVal" />
+    <output id="radiusOutput" />
+    <output id="coordOutput" />
   </div>
 </body>
 </html>
